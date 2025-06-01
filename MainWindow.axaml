@@ -6,13 +6,15 @@
   xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="clr-namespace:avalonia_test.ViewModels"
+  xmlns:controls="using:Avalonia.Controls"
   Title="avalonia_test"
-  d:DesignHeight="720"
-  d:DesignWidth="1050"
-  x:DataType="vm:MainWindowViewModel"
-  mc:Ignorable="d">
+  x:DataType="vm:MainWindowViewModel">
+  <Design.DataContext>
+    <vm:MainWindowViewModel />
+  </Design.DataContext>
 
-  <Grid>
+  <Grid
+    d:DesignHeight="720" d:DesignWidth="1050" mc:Ignorable="d" Background="#FFFDF5E6">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="*" />
       <ColumnDefinition Width="2*" />
@@ -20,8 +22,8 @@
     </Grid.ColumnDefinitions>
     <Grid.RowDefinitions>
       <RowDefinition Height="25" />
-      <RowDefinition Height="*" /> 
-      <RowDefinition Height="Auto" /> 
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
     <TextBlock
@@ -176,29 +178,53 @@
     </StackPanel>
 
     <StackPanel Grid.Row="1" Grid.Column="2">
-      <TextBlock
-      Grid.Row="1"
-      Grid.Column="2"
-      Margin="0,10,0,10"
-      HorizontalAlignment="Center"
-      FontStyle="Italic"
-      FontWeight="Bold"
-      Text="Текущие Значения Компонентов" />
+    <TextBlock
+        Grid.Row="1"
+        Grid.Column="2"
+        Margin="0,10,0,10"
+        HorizontalAlignment="Center"
+        FontStyle="Italic"
+        FontWeight="Bold"
+        Text="Текущие Значения Компонентов" />
 
-      <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-        <Button Content="K" />
-        <Button Margin="4,0,0,0" Content="B" />
-        <Button Margin="4,0,0,0" Content="L" />
-        <Button Margin="4,0,0,0" Content="R" />
-      </StackPanel>
+    
+    <controls:DataGrid
+        AutoGenerateColumns="False"
+        ItemsSource="{Binding CurrentComponentValues}"
+        IsReadOnly="True"
+        GridLinesVisibility="All"
+        HeadersVisibility="Column"
+        BorderBrush="LightGray"
+        BorderThickness="1"
+        Margin="10,10,10,0"
+        Background="LightBlue">
+        <controls:DataGrid.Columns>
+            <controls:DataGridTextColumn Header="Компонент" Binding="{Binding Name}" Width="*"/>
+            <controls:DataGridTextColumn Header="Значение" Binding="{Binding Value}" Width="*"/>
+        </controls:DataGrid.Columns>
+    </controls:DataGrid>
+   
 
+    <!-- <TextBlock
+        Margin="0,20,0,10"
+        HorizontalAlignment="Center"
+        FontStyle="Italic"
+        FontWeight="Bold"
+        Text="ТЕСТОВАЯ ТАБЛИЦА (Если видна, проблема в данных/ViewModel)" />
 
-      <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-        <Button Content="K" />
-        <Button Margin="4,0,0,0" Content="B" />
-        <Button Margin="4,0,0,0" Content="L" />
-        <Button Margin="4,0,0,0" Content="R" />
-      </StackPanel>
-    </StackPanel>
+    <controls:DataGrid
+        AutoGenerateColumns="False"
+        IsReadOnly="True"
+        GridLinesVisibility="All"
+        HeadersVisibility="Column"
+        BorderBrush="Red"  BorderThickness="2"
+        Margin="10,10,10,0"
+        Height="150"     Background="LightPink"> <controls:DataGrid.Columns>
+            <controls:DataGridTextColumn Header="Test Column 1" Width="*" />
+            <controls:DataGridTextColumn Header="Test Column 2" Width="*" />
+        </controls:DataGrid.Columns>
+        </controls:DataGrid> -->
+
+</StackPanel>
   </Grid>
 </Window>

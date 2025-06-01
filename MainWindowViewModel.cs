@@ -85,6 +85,14 @@ namespace avalonia_test.ViewModels
             set => SetProperty(ref _timelineYAxes, value);
         }
 
+        // New property for component values table
+        private ObservableCollection<ComponentValue> _currentComponentValues;
+        public ObservableCollection<ComponentValue> CurrentComponentValues
+        {
+            get => _currentComponentValues;
+            set => SetProperty(ref _currentComponentValues, value);
+        }
+
         public ObservableCollection<string> MachineTypes { get; } = new();
         public ObservableCollection<string> MachineNames { get; } = new();
 
@@ -101,6 +109,7 @@ namespace avalonia_test.ViewModels
                     UpdateProjectText();
                     UpdateChartData(); // Update usage chart when machine type changes
                     UpdateTimelineData(); // Update timeline when machine type changes
+                    LoadComponentValues(); // Load component values when machine type changes
                 }
             }
         }
@@ -116,6 +125,7 @@ namespace avalonia_test.ViewModels
                     UpdateProjectText();
                     UpdateChartData(); // Update usage chart when machine name changes
                     UpdateTimelineData(); // Update timeline when machine name changes
+                    LoadComponentValues(); // Load component values when machine name changes
                 }
             }
         }
@@ -199,9 +209,13 @@ namespace avalonia_test.ViewModels
                 }
             };
 
+            // Initialize new CurrentComponentValues collection
+            _currentComponentValues = new ObservableCollection<ComponentValue>();
+
             LoadMachineData(); // Load initial machine data
             UpdateChartData(); // Initial usage chart data load
             UpdateTimelineData(); // Initial timeline chart data load
+            LoadComponentValues(); // Initial component values load
         }
 
         private void LoadMachineData()
@@ -445,24 +459,10 @@ namespace avalonia_test.ViewModels
                 return;
             }
 
-            // This logic assumes continuous segments for the timeline.
-            // If your logs are sparse, you might need to insert "idle" periods.
-            // For a 24-hour continuous timeline, we need to consider the time *between* logs.
-
-            // Let's refine the timeline data generation.
-            // Each segment in the timeline will have a start time and a duration.
-            // LiveCharts `TimeSpanPoint` is good for this, where Value is duration and Time is start.
-
             DateTime currentTimePointer = twentyFourHoursAgo;
 
             foreach (var log in statusLogs)
             {
-                // If there's a gap between the current time pointer and the log's start time,
-                // assume the machine was in its previous state or "unknown" for that gap.
-                // For simplicity, we'll assume the previous state extends or we handle it if there's no log.
-
-                // Calculate the actual duration of this specific log,
-                // clamped to the 24-hour window.
                 DateTime segmentStart = log.LogTime;
                 DateTime segmentEnd = log.LogTime.AddSeconds(log.DurationSeconds);
 
@@ -490,10 +490,6 @@ namespace avalonia_test.ViewModels
                 currentTimePointer = segmentEnd;
             }
 
-            // Add remaining time as 'Unknown' or 'Off' if the last log doesn't cover until 'now'
-            // or if the first log doesn't start exactly at twentyFourHoursAgo.
-            // This is a simplified approach, a more robust solution might require filling gaps.
-
             // Add the series to the chart
             TimelineSeries.Add(new StackedRowSeries<TimeSpanPoint>
             {
@@ -520,6 +516,52 @@ namespace avalonia_test.ViewModels
             });
         }
 
+        // New method to load component values
+        private void LoadComponentValues()
+        {
+            CurrentComponentValues.Clear();
+
+            if (string.IsNullOrEmpty(SelectedMachineName))
+            {
+                return;
+            }
+
+            using var connection = new SqliteConnection("Data Source=app.db");
+            connection.Open();
+
+            // Select the latest component values for the selected machine
+            // This query assumes you want the most recent value for each component for the given machine.
+            // If you have multiple readings per component for the same timestamp, you might need to adjust.
+            // Here, we're selecting the latest overall for each component name.
+            var command = new SqliteCommand(
+        "SELECT T1.ComponentName, T1.Value, T1.Timestamp " +
+        "FROM ComponentValues AS T1 " +
+        "INNER JOIN ( " +
+        "    SELECT ComponentName, MAX(Timestamp) AS MaxTimestamp " +
+        "    FROM ComponentValues " +
+        "    WHERE MachineName = @machineName " +
+        "    GROUP BY ComponentName " +
+        ") AS T2 " +
+        "ON T1.ComponentName = T2.ComponentName AND T1.Timestamp = T2.MaxTimestamp " +
+        "WHERE T1.MachineName = @machineName " + // Important: Filter by machineName in the outer query too
+        "ORDER BY T1.ComponentName",
+        connection);
+
+
+            command.Parameters.AddWithValue("@machineName", SelectedMachineName);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                CurrentComponentValues.Add(new ComponentValue
+                {
+                    Name = reader.GetString(0),
+                    Value = reader.GetDouble(1)
+                    // Timestamp could be added here if needed for display
+                });
+            }
+        }
+
 
         private class Machine
         {
@@ -528,9 +570,6 @@ namespace avalonia_test.ViewModels
         }
 
         // Helper class for LiveCharts TimeSpanPoint
-        // This is not strictly necessary if you can map your data directly to LiveCharts's types,
-        // but it makes it explicit. For stacked row series, we need to provide the start time (Ticks)
-        // and the duration (Value).
         public class TimeSpanPoint
         {
             public long Time { get; set; } // The start time of the segment in Ticks
@@ -541,6 +580,13 @@ namespace avalonia_test.ViewModels
                 Time = time;
                 Value = value;
             }
+        }
+
+        // New class to represent a component value
+        public class ComponentValue
+        {
+            public string Name { get; set; } = string.Empty;
+            public double Value { get; set; }
         }
     }
 }
