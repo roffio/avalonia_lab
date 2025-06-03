@@ -1,22 +1,23 @@
 ﻿using Avalonia;
 using System;
-using LiveChartsCore; // Required for LiveCharts.Configure
-using LiveChartsCore.Kernel; // Required for Coordinate
-using avalonia_test.ViewModels; // Required to access MainWindowViewModel.TimeSpanPoint
+using LiveChartsCore;
+using LiveChartsCore.Kernel;
+using avalonia_test.Models;   // Updated: To access Models.TimeSpanPoint
+using avalonia_test.Services; // Optional: For global service registration with DI
+using avalonia_test.ViewModels; // Optional: If MainWindowViewModel is instantiated here with DI
 
-namespace avalonia_test 
+namespace avalonia_test
 {
     class Program
     {
         [STAThread]
         public static void Main(string[] args)
         {
-            
             LiveCharts.Configure(config =>
-                config.HasMap<MainWindowViewModel.TimeSpanPoint>((model, index) =>
+                config.HasMap<Models.TimeSpanPoint>((model, index) =>
                     new Coordinate(
-                        model.Value,  
-                        model.Time
+                        x: model.Value, 
+                        y: model.Time    
                     ))
             );
 
@@ -25,9 +26,17 @@ namespace avalonia_test
         }
 
         public static AppBuilder BuildAvaloniaApp()
-            => AppBuilder.Configure<App>() 
+            => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
                 .WithInterFont()
-                .LogToTrace();
+                .LogToTrace()
+                .SetupViewModels(); 
+    }
+    public static class AppBuilderExtensions
+    {
+        public static AppBuilder SetupViewModels(this AppBuilder builder)
+        {
+            return builder;
+        }
     }
 }
