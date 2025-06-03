@@ -6,12 +6,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-// LiveChartsCore specific usings
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
-using SkiaSharp; // Required for SKColors
-using LiveChartsCore.Defaults; // Might be needed for ObservableValue or similar if you use them
+using SkiaSharp; 
+using LiveChartsCore.Defaults; 
 
 namespace avalonia_test.ViewModels
 {
@@ -104,12 +103,12 @@ namespace avalonia_test.ViewModels
                 if (SetProperty(ref _selectedMachineType, value))
                 {
                     UpdateMachineNames();
-                    SelectedMachineName = null; // Reset machine name when type changes
+                    SelectedMachineName = null; 
                     UpdateHeaderText();
                     UpdateProjectText();
-                    UpdateChartData(); // Update usage chart when machine type changes
-                    UpdateTimelineData(); // Update timeline when machine type changes
-                    LoadComponentValues(); // Load component values when machine type changes
+                    UpdateChartData(); 
+                    UpdateTimelineData(); 
+                    LoadComponentValues(); 
                 }
             }
         }
@@ -123,9 +122,9 @@ namespace avalonia_test.ViewModels
                 {
                     UpdateHeaderText();
                     UpdateProjectText();
-                    UpdateChartData(); // Update usage chart when machine name changes
-                    UpdateTimelineData(); // Update timeline when machine name changes
-                    LoadComponentValues(); // Load component values when machine name changes
+                    UpdateChartData(); 
+                    UpdateTimelineData(); 
+                    LoadComponentValues(); 
                 }
             }
         }
@@ -149,7 +148,7 @@ namespace avalonia_test.ViewModels
             {
                 if (SetProperty(ref _startDate, value))
                 {
-                    UpdateChartData(); // Update usage chart when start date changes
+                    UpdateChartData(); 
                 }
             }
         }
@@ -161,14 +160,14 @@ namespace avalonia_test.ViewModels
             {
                 if (SetProperty(ref _endDate, value))
                 {
-                    UpdateChartData(); // Update usage chart when end date changes
+                    UpdateChartData(); 
                 }
             }
         }
 
         public MainWindowViewModel()
         {
-            // Initialize LiveCharts properties for overall usage chart
+            
             _chartSeries = new ObservableCollection<ISeries>();
             _yAxes = new Axis[]
             {
@@ -182,40 +181,35 @@ namespace avalonia_test.ViewModels
                 }
             };
 
-            // Initialize LiveCharts properties for 24-hour timeline
+        
             _timelineSeries = new ObservableCollection<ISeries>();
             _timelineXAxes = new Axis[]
             {
                 new Axis
                 {
-                    Labeler = value => new DateTime((long)value).ToString("HH:mm"), // Format as HH:mm
-                    UnitWidth = TimeSpan.FromHours(1).Ticks, // Each unit on the axis represents 1 hour
-                    MinLimit = DateTime.Now.AddHours(-24).Ticks, // Start 24 hours ago
-                    MaxLimit = DateTime.Now.Ticks, // End at current time
-                    // You might want to adjust the visible range if the chart looks too dense.
-                    // E.g., if you only want to see 4 hours at a time in the view
-                    // SeparatorsPaint = new SolidColorPaint(SKColors.LightGray) // Example for grid lines
+                    Labeler = value => new DateTime((long)value).ToString("HH:mm"), 
+                    UnitWidth = TimeSpan.FromHours(1).Ticks, 
+                    MinLimit = DateTime.Now.AddHours(-24).Ticks, 
+                    MaxLimit = DateTime.Now.Ticks, 
                 }
             };
             _timelineYAxes = new Axis[]
             {
                 new Axis
                 {
-                    // This axis will represent the single "row" for the timeline
-                    Labels = new string[] { "" }, // Empty label as there's only one row
+                    Labels = new string[] { "" }, 
                     MaxLimit = 1,
                     MinLimit = 0,
-                    IsVisible = false // Hide the Y-axis labels and lines
+                    IsVisible = false 
                 }
             };
 
-            // Initialize new CurrentComponentValues collection
             _currentComponentValues = new ObservableCollection<ComponentValue>();
 
-            LoadMachineData(); // Load initial machine data
-            UpdateChartData(); // Initial usage chart data load
-            UpdateTimelineData(); // Initial timeline chart data load
-            LoadComponentValues(); // Initial component values load
+            LoadMachineData(); 
+            UpdateChartData(); 
+            UpdateTimelineData(); 
+            LoadComponentValues(); 
         }
 
         private void LoadMachineData()
@@ -223,7 +217,6 @@ namespace avalonia_test.ViewModels
             using var connection = new SqliteConnection("Data Source=app.db");
             connection.Open();
 
-            // Load machine types
             var cmdTypes = new SqliteCommand("SELECT DISTINCT type FROM machines", connection);
             using var reader1 = cmdTypes.ExecuteReader();
             while (reader1.Read())
@@ -231,7 +224,6 @@ namespace avalonia_test.ViewModels
                 MachineTypes.Add(reader1.GetString(0));
             }
 
-            // Load all machines (names and types)
             var cmdNames = new SqliteCommand("SELECT name, type FROM machines", connection);
             using var reader2 = cmdNames.ExecuteReader();
             while (reader2.Read())
@@ -257,12 +249,10 @@ namespace avalonia_test.ViewModels
 
             if (string.IsNullOrEmpty(SelectedMachineType))
             {
-                // If no type is selected, show all machine names
                 namesToShow = _allMachines.Select(m => m?.Name).Where(name => !string.IsNullOrEmpty(name))!;
             }
             else
             {
-                // If a type is selected, filter names by type
                 namesToShow = _allMachines.Where(m => m != null && m.Type == SelectedMachineType)
                                          .Select(m => m?.Name)
                                          .Where(name => !string.IsNullOrEmpty(name))!;
@@ -300,7 +290,6 @@ namespace avalonia_test.ViewModels
             }
         }
 
-        // --- LiveCharts Data Logic for overall usage chart ---
         private void UpdateChartData()
         {
             ChartSeries.Clear();
@@ -397,26 +386,22 @@ namespace avalonia_test.ViewModels
             }
         }
 
-        // --- LiveCharts Data Logic for 24-hour timeline ---
         private void UpdateTimelineData()
         {
             TimelineSeries.Clear();
 
             if (string.IsNullOrEmpty(SelectedMachineName))
             {
-                // If no machine selected, clear the timeline or show a "No data" message
                 return;
             }
 
             using var connection = new SqliteConnection("Data Source=app.db");
             connection.Open();
 
-            // Calculate the time 24 hours ago from now
             var twentyFourHoursAgo = DateTime.Now.AddHours(-24);
             var now = DateTime.Now;
 
-            // Retrieve status logs for the last 24 hours for the selected machine
-            // Order by LogTime to process chronologically
+
             var command = new SqliteCommand(
                 "SELECT Status, LogTime, DurationSeconds FROM MachineStatusLogs " +
                 "WHERE MachineName = @machineName AND LogTime BETWEEN @startDate AND @endDate " +
@@ -432,24 +417,17 @@ namespace avalonia_test.ViewModels
             while (reader.Read())
             {
                 var status = reader.GetString(0);
-                var logTime = DateTime.Parse(reader.GetString(1)); // Parse the string to DateTime
+                var logTime = DateTime.Parse(reader.GetString(1)); 
                 var duration = reader.GetDouble(2);
                 statusLogs.Add((status, logTime, duration));
             }
 
-            // Create series for each status type (Выключен, Нагрузка, Включен)
             var offData = new List<TimeSpanPoint>();
             var loadData = new List<TimeSpanPoint>();
             var onData = new List<TimeSpanPoint>();
 
-            // The timeline will be a single stacked row.
-            // We need to calculate the "start" and "end" for each segment of status.
-            // LiveCharts `TimeSpanPoint` takes Value (duration) and Time (start time of the segment).
-
-            // If no data, ensure the chart is empty or shows a default message
             if (!statusLogs.Any())
             {
-                // Optionally add a "No data" series if you want to explicitly show something
                 TimelineSeries.Add(new StackedRowSeries<TimeSpanPoint>
                 {
                     Values = new List<TimeSpanPoint>(),
@@ -466,15 +444,14 @@ namespace avalonia_test.ViewModels
                 DateTime segmentStart = log.LogTime;
                 DateTime segmentEnd = log.LogTime.AddSeconds(log.DurationSeconds);
 
-                // Ensure the segment falls within the 24-hour window
                 if (segmentStart < twentyFourHoursAgo) segmentStart = twentyFourHoursAgo;
                 if (segmentEnd > now) segmentEnd = now;
 
-                if (segmentStart >= segmentEnd) continue; // Skip if invalid segment
+                if (segmentStart >= segmentEnd) continue;
 
                 double actualDurationSeconds = (segmentEnd - segmentStart).TotalSeconds;
 
-                // Add to the appropriate list
+                
                 switch (log.Status)
                 {
                     case "Выключен":
@@ -490,13 +467,12 @@ namespace avalonia_test.ViewModels
                 currentTimePointer = segmentEnd;
             }
 
-            // Add the series to the chart
             TimelineSeries.Add(new StackedRowSeries<TimeSpanPoint>
             {
                 Values = offData,
                 Fill = new SolidColorPaint(SKColors.Black),
                 Name = "Выключен",
-                StackGroup = 0 // All series belong to the same stack group for a single stacked row
+                StackGroup = 0 
             });
 
             TimelineSeries.Add(new StackedRowSeries<TimeSpanPoint>
@@ -516,7 +492,6 @@ namespace avalonia_test.ViewModels
             });
         }
 
-        // New method to load component values
         private void LoadComponentValues()
         {
             CurrentComponentValues.Clear();
@@ -529,10 +504,6 @@ namespace avalonia_test.ViewModels
             using var connection = new SqliteConnection("Data Source=app.db");
             connection.Open();
 
-            // Select the latest component values for the selected machine
-            // This query assumes you want the most recent value for each component for the given machine.
-            // If you have multiple readings per component for the same timestamp, you might need to adjust.
-            // Here, we're selecting the latest overall for each component name.
             var command = new SqliteCommand(
         "SELECT T1.ComponentName, T1.Value, T1.Timestamp " +
         "FROM ComponentValues AS T1 " +
@@ -543,7 +514,7 @@ namespace avalonia_test.ViewModels
         "    GROUP BY ComponentName " +
         ") AS T2 " +
         "ON T1.ComponentName = T2.ComponentName AND T1.Timestamp = T2.MaxTimestamp " +
-        "WHERE T1.MachineName = @machineName " + // Important: Filter by machineName in the outer query too
+        "WHERE T1.MachineName = @machineName " + 
         "ORDER BY T1.ComponentName",
         connection);
 
@@ -557,7 +528,6 @@ namespace avalonia_test.ViewModels
                 {
                     Name = reader.GetString(0),
                     Value = reader.GetDouble(1)
-                    // Timestamp could be added here if needed for display
                 });
             }
         }
@@ -569,11 +539,10 @@ namespace avalonia_test.ViewModels
             public string Type { get; set; } = string.Empty;
         }
 
-        // Helper class for LiveCharts TimeSpanPoint
         public class TimeSpanPoint
         {
-            public long Time { get; set; } // The start time of the segment in Ticks
-            public double Value { get; set; } // The duration of the segment in seconds
+            public long Time { get; set; } 
+            public double Value { get; set; } 
 
             public TimeSpanPoint(long time, double value)
             {
@@ -582,7 +551,7 @@ namespace avalonia_test.ViewModels
             }
         }
 
-        // New class to represent a component value
+        // component value
         public class ComponentValue
         {
             public string Name { get; set; } = string.Empty;
